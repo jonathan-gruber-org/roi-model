@@ -63,8 +63,7 @@ function asNumber(value: unknown, fallback = 0): number {
 
 export class ExcelEngine {
   private hf: HyperFormula;
-  private inputsSheetId: number;
-  private outputsSheetId: number;
+  private modelSheetId: number;
 
   private percentModes: Record<keyof Pick<
     RoiInputs,
@@ -73,13 +72,11 @@ export class ExcelEngine {
 
   private constructor(hf: HyperFormula) {
     this.hf = hf;
-    const inputsSheetId = hf.getSheetId('MODEL_INPUTS');
-    const outputsSheetId = hf.getSheetId('MODEL_OUTPUTS');
-    if (inputsSheetId === undefined || outputsSheetId === undefined) {
-      throw new Error('Workbook must contain sheets MODEL_INPUTS and MODEL_OUTPUTS');
+    const modelSheetId = hf.getSheetId('RoI model');
+    if (modelSheetId === undefined) {
+      throw new Error('Workbook must contain sheet "RoI model"');
     }
-    this.inputsSheetId = inputsSheetId;
-    this.outputsSheetId = outputsSheetId;
+    this.modelSheetId = modelSheetId;
 
     // Filled in by load() after reading defaults
     this.percentModes = {
@@ -89,7 +86,7 @@ export class ExcelEngine {
     };
   }
 
-  static async load(url = '/roi_model.xlsx'): Promise<ExcelEngine> {
+  static async load(url = '/roi_model_v2.xlsx'): Promise<ExcelEngine> {
     const res = await fetch(url);
     if (!res.ok) {
       throw new Error(`Failed to load workbook from ${url} (HTTP ${res.status})`);
@@ -97,16 +94,16 @@ export class ExcelEngine {
     const buf = await res.arrayBuffer();
     const wb = XLSX.read(buf, { type: 'array' });
 
-    const wsInputs = wb.Sheets['MODEL_INPUTS'];
-    const wsOutputs = wb.Sheets['MODEL_OUTPUTS'];
-    if (!wsInputs || !wsOutputs) {
-      throw new Error('Workbook must contain sheets MODEL_INPUTS and MODEL_OUTPUTS');
+    const sheets: Record<string, (string | number | boolean | null)[][]> = {};
+    for (const name of wb.SheetNames) {
+      const ws = wb.Sheets[name];
+      if (!ws) continue;
+      if (!ws['!ref']) continue;
+      sheets[name] = sheetTo2D(ws);
     }
-
-    const sheets = {
-      MODEL_INPUTS: sheetTo2D(wsInputs),
-      MODEL_OUTPUTS: sheetTo2D(wsOutputs),
-    };
+    if (!sheets['RoI model']) {
+      throw new Error('Workbook must contain sheet "RoI model"');
+    }
 
     const hf = HyperFormula.buildFromSheets(sheets, {
       licenseKey: 'gpl-v3',
@@ -115,9 +112,9 @@ export class ExcelEngine {
     const engine = new ExcelEngine(hf);
 
     // Detect percent storage mode by reading workbook defaults in those cells.
-    const defaultPctTicketsMigrated = engine.readInputRaw('B8');
-    const defaultOnboardingGain = engine.readInputRaw('B12');
-    const defaultEfficiencyGain = engine.readInputRaw('B16');
+    const defaultPctTicketsMigrated = engine.readInputRaw('D17');
+    const defaultOnboardingGain = engine.readInputRaw('F17');
+    const defaultEfficiencyGain = engine.readInputRaw('H16');
 
     engine.percentModes = {
       pctTicketsMigrated: defaultPctTicketsMigrated <= 1 ? 'fraction' : 'percent',
@@ -134,17 +131,17 @@ export class ExcelEngine {
   }
 
   private readInputRaw(a1: string): number {
-    const v = this.hf.getCellValue(this.addr(this.inputsSheetId, a1));
+    const v = this.hf.getCellValue(this.addr(this.modelSheetId, a1));
     return asNumber(v, 0);
   }
 
   private readOutputRaw(a1: string): number {
-    const v = this.hf.getCellValue(this.addr(this.outputsSheetId, a1));
+    const v = this.hf.getCellValue(this.addr(this.modelSheetId, a1));
     return asNumber(v, 0);
   }
 
   private writeInputRaw(a1: string, value: string | number | boolean | null) {
-    this.hf.setCellContents(this.addr(this.inputsSheetId, a1), value);
+    this.hf.setCellContents(this.addr(this.modelSheetId, a1), value);
   }
 
   private percentUiToRaw(key: keyof typeof this.percentModes, uiValue: number): number {
@@ -160,32 +157,31 @@ export class ExcelEngine {
 
   getInitialState(): { inputs: RoiInputs; assumptions: RoiAssumptions } {
     const inputs: RoiInputs = {
-      developers: this.readInputRaw('B2'),
-      avgYearlyLoadedCost: this.readInputRaw('B3'),
+      developers: this.readInputRaw('D5'),
+      avgYearlyLoadedCost: this.readInputRaw('D6'),
 
-      ticketsPerDevPerMonth: this.readInputRaw('B6'),
-      avgHandlingTimeHours: this.readInputRaw('B7'),
-      pctTicketsMigrated: this.percentRawToUi('pctTicketsMigrated', this.readInputRaw('B8')),
+      ticketsPerDevPerMonth: this.readInputRaw('D15'),
+      avgHandlingTimeHours: this.readInputRaw('D16'),
+      pctTicketsMigrated: this.percentRawToUi('pctTicketsMigrated', this.readInputRaw('D17')),
 
-      devsOnboardedPerYear: this.readInputRaw('B10'),
-      // Stored in the workbook as weeks (see MODEL_INPUTS!A11).
-      timeToOnboardWeeks: this.readInputRaw('B11'),
-      onboardingEfficiencyGainPct: this.percentRawToUi('onboardingEfficiencyGainPct', this.readInputRaw('B12')),
-      seniorEngineerTimePerNewDevHours: this.readInputRaw('B13'),
+      devsOnboardedPerYear: this.readInputRaw('F15'),
+      timeToOnboardWeeks: this.readInputRaw('F16'),
+      onboardingEfficiencyGainPct: this.percentRawToUi('onboardingEfficiencyGainPct', this.readInputRaw('F17')),
+      seniorEngineerTimePerNewDevHours: this.readInputRaw('F18'),
 
-      nonCoreTimePerDevPerMonthHours: this.readInputRaw('B15'),
-      efficiencyGainPct: this.percentRawToUi('efficiencyGainPct', this.readInputRaw('B16')),
+      nonCoreTimePerDevPerMonthHours: this.readInputRaw('H15'),
+      efficiencyGainPct: this.percentRawToUi('efficiencyGainPct', this.readInputRaw('H16')),
 
-      agenticWorkflowsLive: this.readInputRaw('B19'),
-      timeSavedPerWorkflowTriggerHours: this.readInputRaw('B20'),
-      workflowTriggersPerDevPerMonth: this.readInputRaw('B21'),
+      agenticWorkflowsLive: this.readInputRaw('J16'),
+      timeSavedPerWorkflowTriggerHours: this.readInputRaw('J17'),
+      workflowTriggersPerDevPerMonth: this.readInputRaw('J18'),
     };
 
     const assumptions: RoiAssumptions = {
-      licenseCost: this.readInputRaw('E2'),
-      portFte: this.readInputRaw('E3'),
-      launchOffset: this.readInputRaw('E4'),
-      adoptionMonths: this.readInputRaw('E5'),
+      licenseCost: this.readInputRaw('L5'),
+      portFte: this.readInputRaw('L6'),
+      launchOffset: this.readInputRaw('L7'),
+      adoptionMonths: this.readInputRaw('L8'),
     };
 
     return { inputs, assumptions };
@@ -193,34 +189,34 @@ export class ExcelEngine {
 
   calculate(inputs: RoiInputs, assumptions: RoiAssumptions): RoiResult {
     // Write inputs
-    this.writeInputRaw('B2', inputs.developers);
-    this.writeInputRaw('B3', inputs.avgYearlyLoadedCost);
+    this.writeInputRaw('D5', inputs.developers);
+    this.writeInputRaw('D6', inputs.avgYearlyLoadedCost);
 
     // TicketOps
-    this.writeInputRaw('B6', inputs.ticketsPerDevPerMonth);
-    this.writeInputRaw('B7', inputs.avgHandlingTimeHours);
-    this.writeInputRaw('B8', this.percentUiToRaw('pctTicketsMigrated', inputs.pctTicketsMigrated));
+    this.writeInputRaw('D15', inputs.ticketsPerDevPerMonth);
+    this.writeInputRaw('D16', inputs.avgHandlingTimeHours);
+    this.writeInputRaw('D17', this.percentUiToRaw('pctTicketsMigrated', inputs.pctTicketsMigrated));
 
     // Onboarding
-    this.writeInputRaw('B10', inputs.devsOnboardedPerYear);
-    this.writeInputRaw('B11', inputs.timeToOnboardWeeks);
-    this.writeInputRaw('B12', this.percentUiToRaw('onboardingEfficiencyGainPct', inputs.onboardingEfficiencyGainPct));
-    this.writeInputRaw('B13', inputs.seniorEngineerTimePerNewDevHours);
+    this.writeInputRaw('F15', inputs.devsOnboardedPerYear);
+    this.writeInputRaw('F16', inputs.timeToOnboardWeeks);
+    this.writeInputRaw('F17', this.percentUiToRaw('onboardingEfficiencyGainPct', inputs.onboardingEfficiencyGainPct));
+    this.writeInputRaw('F18', inputs.seniorEngineerTimePerNewDevHours);
 
     // Efficiency
-    this.writeInputRaw('B15', inputs.nonCoreTimePerDevPerMonthHours);
-    this.writeInputRaw('B16', this.percentUiToRaw('efficiencyGainPct', inputs.efficiencyGainPct));
+    this.writeInputRaw('H15', inputs.nonCoreTimePerDevPerMonthHours);
+    this.writeInputRaw('H16', this.percentUiToRaw('efficiencyGainPct', inputs.efficiencyGainPct));
 
     // Agentic
-    this.writeInputRaw('B19', inputs.agenticWorkflowsLive);
-    this.writeInputRaw('B20', inputs.timeSavedPerWorkflowTriggerHours);
-    this.writeInputRaw('B21', inputs.workflowTriggersPerDevPerMonth);
+    this.writeInputRaw('J16', inputs.agenticWorkflowsLive);
+    this.writeInputRaw('J17', inputs.timeSavedPerWorkflowTriggerHours);
+    this.writeInputRaw('J18', inputs.workflowTriggersPerDevPerMonth);
 
     // Assumptions (editable)
-    this.writeInputRaw('E2', assumptions.licenseCost);
-    this.writeInputRaw('E3', assumptions.portFte);
-    this.writeInputRaw('E4', assumptions.launchOffset);
-    this.writeInputRaw('E5', assumptions.adoptionMonths);
+    this.writeInputRaw('L5', assumptions.licenseCost);
+    this.writeInputRaw('L6', assumptions.portFte);
+    this.writeInputRaw('L7', assumptions.launchOffset);
+    this.writeInputRaw('L8', assumptions.adoptionMonths);
 
     // HyperFormula recalculates incrementally, but we still call recalc if available.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -229,20 +225,20 @@ export class ExcelEngine {
 
     const breakdown: RoiResult['breakdown'] = {
       ticketops: {
-        hoursSaved: this.readOutputRaw('B2'),
-        dollarsSaved: this.readOutputRaw('B3'),
+        hoursSaved: this.readOutputRaw('D23'),
+        dollarsSaved: this.readOutputRaw('D24'),
       },
       onboarding: {
-        hoursSaved: this.readOutputRaw('B5'),
-        dollarsSaved: this.readOutputRaw('B6'),
+        hoursSaved: this.readOutputRaw('F23'),
+        dollarsSaved: this.readOutputRaw('F24'),
       },
       efficiency: {
-        hoursSaved: this.readOutputRaw('B8'),
-        dollarsSaved: this.readOutputRaw('B9'),
+        hoursSaved: this.readOutputRaw('H23'),
+        dollarsSaved: this.readOutputRaw('H24'),
       },
       agentic: {
-        hoursSaved: this.readOutputRaw('B11'),
-        dollarsSaved: this.readOutputRaw('B12'),
+        hoursSaved: this.readOutputRaw('J23'),
+        dollarsSaved: this.readOutputRaw('J24'),
       },
     };
 
@@ -260,21 +256,21 @@ export class ExcelEngine {
     };
 
     const nextAssumptions: RoiAssumptions = {
-      licenseCost: this.readInputRaw('E2'),
-      portFte: this.readInputRaw('E3'),
-      launchOffset: this.readInputRaw('E4'),
-      adoptionMonths: this.readInputRaw('E5'),
+      licenseCost: this.readInputRaw('L5'),
+      portFte: this.readInputRaw('L6'),
+      launchOffset: this.readInputRaw('L7'),
+      adoptionMonths: this.readInputRaw('L8'),
     };
 
-    // Monthly series (36 points): E..AN on rows 1 and 2
+    // Monthly series (36 points): months in O4..AX4, cumulative ROI in O7..AX7
     const monthly: RoiMonthlyPoint[] = [];
-    const startCol = colLettersToIndex('E'); // 4
-    const endCol = colLettersToIndex('AN'); // 39
+    const startCol = colLettersToIndex('O'); // 14
+    const endCol = colLettersToIndex('AX'); // 49
 
     for (let col = startCol; col <= endCol; col++) {
       const idx = col - startCol;
-      const monthValue = this.hf.getCellValue({ sheet: this.outputsSheetId, row: 0, col });
-      const roiValue = this.hf.getCellValue({ sheet: this.outputsSheetId, row: 1, col });
+      const monthValue = this.hf.getCellValue({ sheet: this.modelSheetId, row: 3, col }); // row 4
+      const roiValue = this.hf.getCellValue({ sheet: this.modelSheetId, row: 6, col }); // row 7
       const month = asNumber(monthValue, idx + 1);
       const roi = asNumber(roiValue, 0);
       monthly.push({ month, roi });

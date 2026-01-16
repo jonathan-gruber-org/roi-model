@@ -55,7 +55,7 @@ export default function App() {
     let cancelled = false;
     (async () => {
       try {
-        const e = await ExcelEngine.load('/roi_model.xlsx');
+        const e = await ExcelEngine.load('/roi_model_v2.xlsx');
         const init = e.getInitialState();
         if (cancelled) return;
         setEngine(e);
@@ -128,7 +128,7 @@ export default function App() {
           >
             Download PDF
           </button>
-          <a className="header__link" href="/roi_model.xlsx" target="_blank" rel="noreferrer">
+          <a className="header__link" href="/roi_model_v2.xlsx" target="_blank" rel="noreferrer">
             View workbook
           </a>
         </div>
@@ -143,7 +143,7 @@ export default function App() {
         <div className="card card--error">
           <div className="card__title">Could not load ROI model</div>
           <div className="errorText">{loadError}</div>
-          <div className="muted">Ensure the file exists at <code className="code">public/roi_model.xlsx</code>.</div>
+          <div className="muted">Ensure the file exists at <code className="code">public/roi_model_v2.xlsx</code>.</div>
         </div>
       ) : null}
 
