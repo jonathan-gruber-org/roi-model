@@ -48,11 +48,11 @@ export function SliderField({ label, value, onChange, min, max, step, suffix, to
       <div className="sliderField__minMax">
         <div>
           {min}
-          {suffix ?? ''}
+          {suffix ? ` ${suffix}` : ''}
         </div>
         <div>
           {max}
-          {suffix ?? ''}
+          {suffix ? ` ${suffix}` : ''}
         </div>
       </div>
     </div>

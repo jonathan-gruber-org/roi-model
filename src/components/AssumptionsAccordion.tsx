@@ -39,7 +39,7 @@ export function AssumptionsAccordion({
               step={0.5}
             />
             <Field
-              label="Launch month offset"
+              label="launch offset (months)"
               value={assumptions.launchOffset}
               onChange={(v) => set('launchOffset', v, { min: 0 })}
               step={1}

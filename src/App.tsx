@@ -7,6 +7,7 @@ import { clampNumber } from './utils/format';
 import { AssumptionsAccordion } from './components/AssumptionsAccordion';
 import { Field } from './components/Field';
 import { SliderField } from './components/SliderField';
+import { SectionHeader } from './components/SectionHeader';
 import { ResultsSummary } from './components/ResultsSummary';
 import { RoiChart } from './components/RoiChart';
 
@@ -109,10 +110,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="header">
-        <div>
-          <div className="header__title">Port ROI Calculator</div>
-          <div className="header__subtitle">Excel-backed model (client-side) — click Calculate to run the workbook formulas.</div>
+      <header className="topbar">
+        <div className="topbar__brand">
+          <img className="topbar__logo" src="/port.svg" alt="Port" />
+          <div>
+            <div className="topbar__title">Port ROI Calculator</div>
+            <div className="topbar__subtitle">Internal ROI model (client-side Excel evaluation)</div>
+          </div>
         </div>
         <div className="header__actions">
           <button
@@ -146,10 +150,16 @@ export default function App() {
       <div className="grid">
         <div className="left">
           <div className="card">
-            <div className="card__title">Inputs</div>
+            <div className="cardHeader">
+              <div className="card__title">Inputs</div>
+            </div>
 
             <div className="section">
-              <div className="section__title">Company</div>
+              <SectionHeader
+                icon="company"
+                title="Company"
+                description="Baseline inputs to estimate the value of time saved."
+              />
               <div className="fields">
                 <SliderField
                   label="Number of developers"
@@ -171,7 +181,11 @@ export default function App() {
             </div>
 
             <div className="section">
-              <div className="section__title">from ticketops to Self Service</div>
+              <SectionHeader
+                icon="ticketops"
+                title="From TicketOps to Self Service"
+                description="Estimate support load reduction by shifting tickets to self-service."
+              />
               <div className="fields">
                 <SliderField
                   label="Tickets opened per dev per month"
@@ -182,11 +196,11 @@ export default function App() {
                   step={1}
                 />
                 <Field
-                  label="Avg handling time per ticket"
+                  label="Average handling time per ticket"
                   value={inputs.avgHandlingTimeHours}
                   onChange={(v) => set('avgHandlingTimeHours', v, { min: 0 })}
                   step={0.1}
-                  suffix="hrs"
+                  suffix="hours"
                 />
                 <Field
                   label="% tickets migrated to self-service"
@@ -199,7 +213,7 @@ export default function App() {
             </div>
 
             <div className="section">
-              <div className="section__title">Developer onboarding</div>
+              <SectionHeader icon="onboarding" title="Developer onboarding" description="Model reduction in time to onboard new developers." />
               <div className="fields">
                 <Field
                   label="Devs onboarded per year"
@@ -212,12 +226,13 @@ export default function App() {
                   value={inputs.timeToOnboardWeeks}
                   onChange={(v) => set('timeToOnboardWeeks', v, { min: 0 })}
                   step={1}
-                  suffix="wks"
+                  suffix="weeks"
                 />
                 <Field
-                  label="Developer onboarding efficiency gains"
+                  label="Accelerated developer onboarding gain"
+                  tooltip="Developer onboarding efficiency gains"
                   value={inputs.onboardingEfficiencyGainPct}
-                  onChange={(v) => set('onboardingEfficiencyGainPct', v, { min: 0, max: 100 })}
+                  onChange={(v) => set('onboardingEfficiencyGainPct', v, { min: 0, max: 90 })}
                   step={1}
                   suffix="%"
                 />
@@ -226,25 +241,27 @@ export default function App() {
                   value={inputs.seniorEngineerTimePerNewDevHours}
                   onChange={(v) => set('seniorEngineerTimePerNewDevHours', v, { min: 0 })}
                   step={0.5}
-                  suffix="hrs"
+                  suffix="hours"
                 />
               </div>
             </div>
 
             <div className="section">
-              <div className="section__title">
-                <span>Developer Efficiency Gains</span>
-                <span className="tooltipIcon tooltipIcon--section" title="Central source of truth & lower cognitive load" aria-label="Central source of truth & lower cognitive load">
-                  i
-                </span>
-              </div>
+              <SectionHeader
+                icon="efficiency"
+                title="Developer Efficiency Gains"
+                description="Central source of truth & lower cognitive load."
+              />
               <div className="fields">
-                <Field
+                <SliderField
                   label="Non-core time per dev per month"
+                  tooltip="dashboards, permissions, requests, investigations, looking for information"
                   value={inputs.nonCoreTimePerDevPerMonthHours}
-                  onChange={(v) => set('nonCoreTimePerDevPerMonthHours', v, { min: 0 })}
+                  onChange={(v) => set('nonCoreTimePerDevPerMonthHours', v, { min: 0, max: 20 })}
+                  min={0}
+                  max={20}
                   step={1}
-                  suffix="hrs"
+                  suffix="hours"
                 />
                 <Field
                   label="Efficiency gain with Port"
@@ -257,7 +274,11 @@ export default function App() {
             </div>
 
             <div className="section">
-              <div className="section__title">Manual tasks to Agentic Workflows</div>
+              <SectionHeader
+                icon="agentic"
+                title="Manual tasks to Agentic Workflows"
+                description="Model time saved by automating repetitive workflow triggers."
+              />
               <div className="fields">
                 <Field
                   label="# agentic workflows live"
@@ -270,7 +291,7 @@ export default function App() {
                   value={inputs.timeSavedPerWorkflowTriggerHours}
                   onChange={(v) => set('timeSavedPerWorkflowTriggerHours', v, { min: 0 })}
                   step={0.05}
-                  suffix="hrs"
+                  suffix="hours"
                 />
                 <Field
                   label="Workflow triggers per dev per month"
@@ -307,9 +328,6 @@ export default function App() {
         </div>
       </div>
 
-      <footer className="footer">
-        <div className="muted">Model source: <code className="code">public/roi_model.xlsx</code> (evaluated with HyperFormula in the browser).</div>
-      </footer>
     </div>
   );
 }

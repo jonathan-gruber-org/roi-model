@@ -296,7 +296,7 @@ export function validateInputs(inputs: RoiInputs): string[] {
   nonNeg('avgYearlyLoadedCost', 'Average developer loaded cost (yearly) ($)');
 
   nonNeg('ticketsPerDevPerMonth', 'Tickets opened per dev per month');
-  nonNeg('avgHandlingTimeHours', 'Avg handling time per ticket (hours)');
+  nonNeg('avgHandlingTimeHours', 'Average handling time per ticket (hours)');
   nonNeg('pctTicketsMigrated', '% tickets migrated to self-service');
   if (Number.isFinite(inputs.pctTicketsMigrated) && (inputs.pctTicketsMigrated < 0 || inputs.pctTicketsMigrated > 100)) {
     errs.push('% tickets migrated must be between 0 and 100.');
@@ -304,12 +304,12 @@ export function validateInputs(inputs: RoiInputs): string[] {
 
   nonNeg('devsOnboardedPerYear', 'Devs onboarded per year');
   nonNeg('timeToOnboardWeeks', 'Time required to onboard a new developer (weeks)');
-  nonNeg('onboardingEfficiencyGainPct', 'Developer onboarding efficiency gains (%)');
+  nonNeg('onboardingEfficiencyGainPct', 'Accelerated developer onboarding gain (%)');
   if (
     Number.isFinite(inputs.onboardingEfficiencyGainPct) &&
-    (inputs.onboardingEfficiencyGainPct < 0 || inputs.onboardingEfficiencyGainPct > 100)
+    (inputs.onboardingEfficiencyGainPct < 0 || inputs.onboardingEfficiencyGainPct > 90)
   ) {
-    errs.push('Onboarding efficiency gain must be between 0 and 100.');
+    errs.push('Accelerated developer onboarding gain must be between 0 and 90.');
   }
   nonNeg('seniorEngineerTimePerNewDevHours', 'Senior engineer time per new dev (hours)');
 
@@ -335,7 +335,7 @@ export function validateAssumptions(a: RoiAssumptions): string[] {
 
   nonNeg(a.licenseCost, 'Yearly license cost');
   nonNeg(a.portFte, 'Full Time Engineers dedicated to IDP');
-  nonNeg(a.launchOffset, 'Launch month offset');
+  nonNeg(a.launchOffset, 'launch offset (months)');
   nonNeg(a.adoptionMonths, 'Months to reach 100% adoption');
 
   return errs;
