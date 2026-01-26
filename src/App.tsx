@@ -11,6 +11,21 @@ import { SectionHeader } from './components/SectionHeader';
 import { ResultsSummary } from './components/ResultsSummary';
 import { RoiChart } from './components/RoiChart';
 
+function Chevron() {
+  return (
+    <svg className="useCaseSection__chevron" viewBox="0 0 20 20" aria-hidden="true">
+      <path
+        d="M5.25 7.5L10 12.25L14.75 7.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 const FALLBACK_DEFAULTS: RoiInputs = {
   developers: 50,
   avgYearlyLoadedCost: 200000,
@@ -180,13 +195,17 @@ export default function App() {
               </div>
             </div>
 
-            <div className="section">
-              <SectionHeader
-                icon="ticketops"
-                title="From TicketOps to Self Service"
-                description="Estimate support load reduction by shifting tickets to self-service."
-              />
-              <div className="fields">
+            <details className="section useCaseSection" open>
+              <summary className="useCaseSection__summary">
+                <SectionHeader
+                  icon="ticketops"
+                  title="From TicketOps to Self Service"
+                  description="Estimate support load reduction by shifting tickets to self-service."
+                  right={<Chevron />}
+                />
+              </summary>
+              <div className="useCaseSection__content">
+                <div className="fields">
                 <SliderField
                   label="Tickets opened per dev per month"
                   value={inputs.ticketsPerDevPerMonth}
@@ -209,12 +228,21 @@ export default function App() {
                   step={1}
                   suffix="%"
                 />
+                </div>
               </div>
-            </div>
+            </details>
 
-            <div className="section">
-              <SectionHeader icon="onboarding" title="Developer onboarding" description="Model reduction in time to onboard new developers." />
-              <div className="fields">
+            <details className="section useCaseSection" open>
+              <summary className="useCaseSection__summary">
+                <SectionHeader
+                  icon="onboarding"
+                  title="Developer onboarding"
+                  description="Model reduction in time to onboard new developers."
+                  right={<Chevron />}
+                />
+              </summary>
+              <div className="useCaseSection__content">
+                <div className="fields">
                 <Field
                   label="Devs onboarded per year"
                   value={inputs.devsOnboardedPerYear}
@@ -243,16 +271,21 @@ export default function App() {
                   step={0.5}
                   suffix="hours"
                 />
+                </div>
               </div>
-            </div>
+            </details>
 
-            <div className="section">
-              <SectionHeader
-                icon="efficiency"
-                title="Developer Efficiency Gains"
-                description="Central source of truth & lower cognitive load."
-              />
-              <div className="fields">
+            <details className="section useCaseSection" open>
+              <summary className="useCaseSection__summary">
+                <SectionHeader
+                  icon="efficiency"
+                  title="Developer Efficiency Gains"
+                  description="Central source of truth & lower cognitive load."
+                  right={<Chevron />}
+                />
+              </summary>
+              <div className="useCaseSection__content">
+                <div className="fields">
                 <SliderField
                   label="Non-core time per dev per month"
                   tooltip="dashboards, permissions, requests, investigations, looking for information"
@@ -270,16 +303,21 @@ export default function App() {
                   step={1}
                   suffix="%"
                 />
+                </div>
               </div>
-            </div>
+            </details>
 
-            <div className="section">
-              <SectionHeader
-                icon="agentic"
-                title="Manual tasks to Agentic Workflows"
-                description="Model time saved by automating repetitive workflow triggers."
-              />
-              <div className="fields">
+            <details className="section useCaseSection" open>
+              <summary className="useCaseSection__summary">
+                <SectionHeader
+                  icon="agentic"
+                  title="Manual tasks to Agentic Workflows"
+                  description="Model time saved by automating repetitive workflow triggers."
+                  right={<Chevron />}
+                />
+              </summary>
+              <div className="useCaseSection__content">
+                <div className="fields">
                 <Field
                   label="# agentic workflows live"
                   value={inputs.agenticWorkflowsLive}
@@ -299,8 +337,9 @@ export default function App() {
                   onChange={(v) => set('workflowTriggersPerDevPerMonth', v, { min: 0 })}
                   step={1}
                 />
+                </div>
               </div>
-            </div>
+            </details>
 
             <div className="actions">
               <button className="btn" onClick={onCalculate} disabled={loading || !!loadError || calculating}>
